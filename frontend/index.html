@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UniLex — Student-Friendly Dictionary</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <h1>UniLex</h1>
+    <p class="tagline">Complex terms, explained like a classmate would.</p>
+  </header>
+
+  <main>
+    <section class="search-section">
+      <div class="search-row">
+        <input
+          id="search-input"
+          type="text"
+          placeholder='Ask anything — e.g. "why does the model overfit?"'
+          autocomplete="off"
+        />
+        <button id="search-btn">Search</button>
+      </div>
+
+      <div class="search-mode">
+        <label>
+          <input type="radio" name="mode" value="tfidf" checked />
+          Keyword search (fast)
+        </label>
+        <label>
+          <input type="radio" name="mode" value="semantic" />
+          Smart search (understands meaning)
+        </label>
+      </div>
+
+      <p id="search-status" class="status"></p>
+    </section>
+
+    <section id="results" class="results"></section>
+
+    <section class="extract-section">
+      <h2>Paste lecture text</h2>
+      <p class="hint">UniLex will find every term from its dictionary that appears in your text.</p>
+      <textarea
+        id="lecture-input"
+        rows="6"
+        placeholder="Paste a paragraph from your lecture notes or slides here..."
+      ></textarea>
+      <button id="extract-btn">Find terms</button>
+      <div id="extract-results" class="results"></div>
+    </section>
+  </main>
+
+  <footer>
+    <p>UniLex &mdash; an NLP-based student dictionary for CS &amp; AI terms.</p>
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
