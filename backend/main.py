@@ -2,7 +2,8 @@
 UniLex backend API (Day 2 of the plan).
 
 Endpoints:
-  GET  /                      - health check
+  GET  /health                - health check
+  GET  /                      - website
   GET  /term/{term_name}      - exact term lookup
   GET  /search                - basic TF-IDF keyword search
   GET  /search/semantic       - SBERT semantic search (natural-language questions)
@@ -10,6 +11,9 @@ Endpoints:
 """
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
+
+from fastapi.staticfiles import StaticFiles
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -63,7 +67,7 @@ class ExtractRequest(BaseModel):
     text: str
 
 
-@app.get("/")
+@app.get("/health")
 def health():
     df = STATE.get("df")
     return {
@@ -129,3 +133,6 @@ def extract_terms(req: ExtractRequest):
         "text_length": len(req.text),
         "terms_found": [to_entry_dict(df.iloc[h["index"]]) for h in hits],
     }
+
+
+app.mount("/", StaticFiles(directory=Path(__file__).resolve().parent.parent / "frontend", html=True), name="website")
