@@ -16,6 +16,8 @@ import pandas as pd
 import torch
 from sentence_transformers import CrossEncoder, SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
+from nltk.stem import PorterStemmer
 
 MODEL_NAME = "all-MiniLM-L6-v2"
 EMBEDDINGS_CACHE = "sbert_embeddings.npy"
@@ -103,23 +105,31 @@ class SemanticSearch:
     def _prefer_phrase_matches(self, query: str, ranked: list[tuple]) -> list[tuple]:
         """Disambiguate close semantic matches using ordered definition phrases.
 
-        Normalize punctuation so a hyphenated phrase matches the same words
-        typed with spaces. Apply only to the already accepted contenders; this
-        cannot promote an irrelevant document from outside the semantic gate.
+        Normalize punctuation and inflections; short three-word phrases must
+        consist entirely of content words. Apply to SBERT candidates before the
+        reranker cutoff, so a direct definition phrase is not discarded by an imperfect reranker.
         """
+        stemmer = PorterStemmer()
         tokens = re.findall(r"[^\W_]+", query.casefold())
+        stemmed = [stemmer.stem(token) for token in tokens]
         phrases = {
-            tuple(tokens[start:start + 4])
-            for start in range(len(tokens) - 3)
-            if len(set(tokens[start:start + 4])) >= 3
+            tuple(stemmed[start:start + size])
+            for size in (3, 4)
+            for start in range(len(tokens) - size + 1)
+            if len(set(tokens[start:start + size])) >= 3
+            and (size == 4 or all(token not in ENGLISH_STOP_WORDS
+                                  for token in tokens[start:start + size]))
         }
         if not phrases or len(ranked) < 2:
             return ranked
         evidence = []
         for index, relevance in ranked:
-            words = re.findall(r"[^\W_]+", self._definitions[index].casefold())
+            words = [stemmer.stem(token) for token in
+                     re.findall(r"[^\W_]+", self._definitions[index].casefold())]
             definition_phrases = {
-                tuple(words[start:start + 4]) for start in range(len(words) - 3)
+                tuple(words[start:start + size])
+                for size in (3, 4)
+                for start in range(len(words) - size + 1)
             }
             evidence.append((index, relevance, len(phrases & definition_phrases)))
         strongest = max(count for _, _, count in evidence)
@@ -188,13 +198,21 @@ class SemanticSearch:
                         valid = relevance[np.isfinite(relevance)]
                     # top_k is a maximum, not a quota. Keep only close contenders
                     # within 0.5 raw reranker logit of the strongest match.
-                    cutoff = max(0.0, float(valid.max()) - 0.5) if len(valid) else float("inf")
-                    ranked = [
+                    contenders = [
                         (i, float(value))
                         for i, value in zip(candidates, relevance)
-                        if np.isfinite(value) and value >= cutoff
+                        if np.isfinite(value)
                     ]
-                    ranked = self._prefer_phrase_matches(query, ranked)
+                    phrase_matches = self._prefer_phrase_matches(query, contenders)
+                    if len(phrase_matches) < len(contenders):
+                        # A normalized definition phrase supplies lexical evidence
+                        # independently of the small reranker's raw logit.
+                        phrase_cutoff = max(value for _, value in phrase_matches) - 0.5
+                        ranked = [(i, value) for i, value in phrase_matches
+                                  if value >= phrase_cutoff]
+                    else:
+                        cutoff = max(0.0, float(valid.max()) - 0.5) if len(valid) else float("inf")
+                        ranked = [(i, value) for i, value in contenders if value >= cutoff]
                     ranked.sort(key=lambda item: (-item[1], -float(scores[item[0]]), item[0]))
                     accepted = [i for i, _ in ranked]
                 finally:
