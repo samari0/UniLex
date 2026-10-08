@@ -5,6 +5,7 @@ Definitions are ranked before explanations to identify the requested concept.
 Returned scores remain SBERT cosine similarities, not reranker probabilities.
 """
 
+from collections import Counter
 import ctypes
 import gc
 import os
@@ -50,6 +51,16 @@ class SemanticSearch:
             for row in df[["term", "formal_definition"]]
             .fillna("").itertuples(index=False, name=None)
         ]
+        self._phrase_definitions = df["formal_definition"].fillna("").astype(str).tolist()
+        # Short phrase anchors must include an informative word, not just
+        # generic wording such as "data structure uses".
+        stemmer = PorterStemmer()
+        self._definition_frequencies = Counter()
+        for definition in self._phrase_definitions:
+            self._definition_frequencies.update({
+                stemmer.stem(token) for token in
+                re.findall(r"[^\W_]+", definition.casefold())
+            })
         torch.set_num_threads(1)
         # build.sh initializes this class, so both models are cached at build
         # time. Release the reranker before loading SBERT, including on startup.
@@ -117,15 +128,20 @@ class SemanticSearch:
             for size in (3, 4)
             for start in range(len(tokens) - size + 1)
             if len(set(tokens[start:start + size])) >= 3
-            and (size == 4 or all(token not in ENGLISH_STOP_WORDS
-                                  for token in tokens[start:start + size]))
+            and (size == 4 or (
+                all(token not in ENGLISH_STOP_WORDS
+                    for token in tokens[start:start + size])
+                and any(0 < self._definition_frequencies[token]
+                        <= max(1, len(self.df) * 0.02)
+                        for token in stemmed[start:start + size])
+            ))
         }
         if not phrases or len(ranked) < 2:
             return ranked
         evidence = []
         for index, relevance in ranked:
             words = [stemmer.stem(token) for token in
-                     re.findall(r"[^\W_]+", self._definitions[index].casefold())]
+                     re.findall(r"[^\W_]+", self._phrase_definitions[index].casefold())]
             definition_phrases = {
                 tuple(words[start:start + size])
                 for size in (3, 4)
