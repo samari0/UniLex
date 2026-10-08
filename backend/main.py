@@ -33,24 +33,49 @@ SEMANTIC_ENABLED = os.environ.get("UNILEX_DISABLE_SEMANTIC", "") != "1"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    df = load_dataset()
-    search_texts = [build_search_text(row) for _, row in df.iterrows()]
+    import faulthandler
 
-    STATE["df"] = df
-    STATE["tfidf"] = TfidfSearch(df, search_texts)
-    STATE["extractor"] = TermExtractor(df)
-    STATE["semantic"] = None
-    STATE["semantic_error"] = None
+    faulthandler.dump_traceback_later(60, repeat=True)
+    try:
+        print("[STARTUP] 1: loading dataset", flush=True)
+        df = load_dataset()
 
-    if SEMANTIC_ENABLED:
-        try:
-            from search_semantic import SemanticSearch
-            STATE["semantic"] = SemanticSearch(df, search_texts)
-        except Exception as e:
-            STATE["semantic_error"] = str(e)
+        print("[STARTUP] 2: building search texts", flush=True)
+        search_texts = [
+            build_search_text(row) for _, row in df.iterrows()
+        ]
+        STATE["df"] = df
 
-    yield
-    STATE.clear()
+        print("[STARTUP] 3: loading TF-IDF", flush=True)
+        STATE["tfidf"] = TfidfSearch(df, search_texts)
+
+        print("[STARTUP] 4: loading term extractor", flush=True)
+        STATE["extractor"] = TermExtractor(df)
+        STATE["semantic"] = None
+        STATE["semantic_error"] = None
+
+        if SEMANTIC_ENABLED:
+            try:
+                print("[STARTUP] 5: importing SBERT", flush=True)
+                from search_semantic import SemanticSearch
+
+                print("[STARTUP] 6: loading SBERT", flush=True)
+                STATE["semantic"] = SemanticSearch(df, search_texts)
+            except Exception as e:
+                STATE["semantic_error"] = str(e)
+                print(
+                    f"[STARTUP] SBERT error: {type(e).__name__}: {e}",
+                    flush=True,
+                )
+
+        print("[STARTUP] 7: ready", flush=True)
+    finally:
+        faulthandler.cancel_dump_traceback_later()
+
+    try:
+        yield
+    finally:
+        STATE.clear()
 
 
 app = FastAPI(title="UniLex API", lifespan=lifespan)
