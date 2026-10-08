@@ -1,6 +1,7 @@
 """SBERT retrieval with query/document reranking and exact-term priority.
 
 The two models are used sequentially to keep the web service's memory bounded.
+Definitions are ranked before explanations to identify the requested concept.
 Returned scores remain SBERT cosine similarities, not reranker probabilities.
 """
 
@@ -40,6 +41,11 @@ class SemanticSearch:
             for row in df[
                 ["term", "formal_definition", "student_friendly_explanation"]
             ].fillna("").itertuples(index=False, name=None)
+        ]
+        self._definitions = [
+            ". ".join(str(value).strip() for value in row if str(value).strip())
+            for row in df[["term", "formal_definition"]]
+            .fillna("").itertuples(index=False, name=None)
         ]
         torch.set_num_threads(1)
         # build.sh initializes this class, so both models are cached at build
@@ -130,16 +136,34 @@ class SemanticSearch:
                 self._release_memory()
                 reranker = self._load_reranker()
                 try:
-                    relevance = reranker.predict(
-                        [(query, self._documents[i]) for i in candidates],
+                    # Frame the task as dictionary concept identification.
+                    # Long explanations can mention a symptom incidentally;
+                    # prefer a definition that directly describes the query.
+                    definition_query = "Which term describes this situation? " + query
+                    relevance = np.asarray(reranker.predict(
+                        [(definition_query, self._definitions[i]) for i in candidates],
                         batch_size=1,
                         activation_fct=torch.nn.Identity(),
                         show_progress_bar=False,
-                    )
+                    )).reshape(-1)
+                    valid = relevance[np.isfinite(relevance)]
+                    if not len(valid) or float(valid.max()) < 0.0:
+                        # Some definitions are terse. Preserve explanation-based
+                        # retrieval when no definition clears the relevance gate.
+                        relevance = np.asarray(reranker.predict(
+                            [(query, self._documents[i]) for i in candidates],
+                            batch_size=1,
+                            activation_fct=torch.nn.Identity(),
+                            show_progress_bar=False,
+                        )).reshape(-1)
+                        valid = relevance[np.isfinite(relevance)]
+                    # top_k is a maximum, not a quota. Keep only close contenders
+                    # within 0.5 raw reranker logit of the strongest match.
+                    cutoff = max(0.0, float(valid.max()) - 0.5) if len(valid) else float("inf")
                     ranked = [
                         (i, float(value))
-                        for i, value in zip(candidates, np.asarray(relevance).reshape(-1))
-                        if np.isfinite(value) and value >= 0.0
+                        for i, value in zip(candidates, relevance)
+                        if np.isfinite(value) and value >= cutoff
                     ]
                     ranked.sort(key=lambda item: (-item[1], -float(scores[item[0]]), item[0]))
                     accepted = [i for i, _ in ranked]
