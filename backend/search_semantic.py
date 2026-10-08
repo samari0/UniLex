@@ -8,6 +8,7 @@ Returned scores remain SBERT cosine similarities, not reranker probabilities.
 import ctypes
 import gc
 import os
+import re
 import sys
 import threading
 import numpy as np
@@ -99,6 +100,34 @@ class SemanticSearch:
             local_files_only=local_files_only,
         )
 
+    def _prefer_phrase_matches(self, query: str, ranked: list[tuple]) -> list[tuple]:
+        """Disambiguate close semantic matches using ordered definition phrases.
+
+        Normalize punctuation so a hyphenated phrase matches the same words
+        typed with spaces. Apply only to the already accepted contenders; this
+        cannot promote an irrelevant document from outside the semantic gate.
+        """
+        tokens = re.findall(r"[^\W_]+", query.casefold())
+        phrases = {
+            tuple(tokens[start:start + 4])
+            for start in range(len(tokens) - 3)
+            if len(set(tokens[start:start + 4])) >= 3
+        }
+        if not phrases or len(ranked) < 2:
+            return ranked
+        evidence = []
+        for index, relevance in ranked:
+            words = re.findall(r"[^\W_]+", self._definitions[index].casefold())
+            definition_phrases = {
+                tuple(words[start:start + 4]) for start in range(len(words) - 3)
+            }
+            evidence.append((index, relevance, len(phrases & definition_phrases)))
+        strongest = max(count for _, _, count in evidence)
+        if strongest == 0:
+            return ranked
+        return [(index, relevance) for index, relevance, count in evidence
+                if count == strongest]
+
     def search(self, query: str, top_k: int = 5) -> list[dict]:
         if not isinstance(query, str) or top_k <= 0:
             return []
@@ -165,6 +194,7 @@ class SemanticSearch:
                         for i, value in zip(candidates, relevance)
                         if np.isfinite(value) and value >= cutoff
                     ]
+                    ranked = self._prefer_phrase_matches(query, ranked)
                     ranked.sort(key=lambda item: (-item[1], -float(scores[item[0]]), item[0]))
                     accepted = [i for i, _ in ranked]
                 finally:
