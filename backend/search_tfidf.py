@@ -57,9 +57,9 @@ class TfidfSearch:
         # established CS acronyms as lexical query evidence.
         normalized = re.sub(r"[^a-z0-9]+", " ", query.casefold()).strip()
         tokens = set(normalized.split())
-        if re.search(r"\\bfirst in first out\\b", normalized) and "fifo" not in tokens:
+        if re.search(r"\bfirst in first out\b", normalized) and "fifo" not in tokens:
             query += " FIFO"
-        elif re.search(r"\\blast in first out\\b", normalized) and "lifo" not in tokens:
+        elif re.search(r"\blast in first out\b", normalized) and "lifo" not in tokens:
             query += " LIFO"
 
         query_clean = clean_text(query)
