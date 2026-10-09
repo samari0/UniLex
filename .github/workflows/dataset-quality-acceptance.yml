@@ -1,6 +1,8 @@
 name: UniLex dataset quality acceptance
 
 on:
+  push:
+    branches: [verify/dataset-quality-20261009]
   pull_request:
     branches: [main]
 
