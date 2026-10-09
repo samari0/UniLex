@@ -71,8 +71,34 @@ jobs:
                      for t in terms), ("Missing any relevant memorization concept", terms)
 
           fifo = get("/search", q="Which data structure follows first in first out?", top_k=5)
-          print("DIAGNOSTIC FIFO", [entry["term"] for entry in fifo["results"]], flush=True)
+          fifo_terms = [entry["term"] for entry in fifo["results"]]
+          print("DIAGNOSTIC FIFO", fifo_terms, flush=True)
+          assert fifo_terms and fifo_terms[0] in {"Queue", "A Queue Data Structure"}, fifo_terms
+
+          lifo = get("/search", q="Which data structure follows last in first out?", top_k=5)
+          lifo_terms = [entry["term"] for entry in lifo["results"]]
+          print("DIAGNOSTIC LIFO", lifo_terms, flush=True)
+          assert lifo_terms and lifo_terms[0] in {"Stack", "A Stack Data Structure"}, lifo_terms
           print("LIVE KEYWORD TESTS PASSED", flush=True)
+
+          semantic = get("/search/semantic", q="Why does my model perform well on training data but poorly on unseen data?", top_k=5)
+          semantic_terms = [entry["term"] for entry in semantic["results"]]
+          print("SEMANTIC OVERFITTING", semantic_terms, flush=True)
+          assert semantic["method"] == "sbert"
+          assert semantic_terms and semantic_terms[0] in {"Overfitting", "Overfitting In Machine Learning","Overfitting In Ai."}, semantic_terms
+          print("LIVE SMART SEARCH SMOKE PASSED", flush=True)
+
+          from urllib.request import Request
+          request = Request(base + "/extract",
+                            data=json.dumps({"text":"Machine learning models can suffer from overfitting."}).encode(),
+                            headers={"Content-Type":"application/json"},method="POST")
+          with urlopen(request, timeout=90) as response:
+              result = json.load(response)
+              extracted = [entry["term"] for entry in result["terms_found"]]
+              print("LIVE EXTRACTION", response.status, extracted, flush=True)
+              assert any(term == "Machine Learning" for term in extracted), extracted
+              assert any("Overfitting" in term for term in extracted), extracted
+          print("LIVE SMOKE CHECKS PASSED", flush=True)
           PY
 
   patched-keyword-local:
