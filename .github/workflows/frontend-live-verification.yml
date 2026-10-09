@@ -55,6 +55,18 @@ jobs:
               assert response is not None and response.status==200,('Site unavailable via browser', response.status if response else None)
               await page.locator('#search-input').wait_for()
               print("FRONTEND Loaded production website",flush=True)
+              checks = [
+                ("APPS","example","test cases"),
+                ("AIME Benchmark","student_friendly_explanation","AMC 10"),
+                ("Cross-validation","example","five folds"),
+                ("The Cap Theorem.","student_friendly_explanation","network partition"),
+              ]
+              for term,field,expected in checks:
+                response=await page.request.get(URL+"/term/"+term.replace(' ','%20'),timeout=30000)
+                assert response.status==200,(term,response.status)
+                record=await response.json()
+                assert expected in record[field],(term,field,record[field])
+                print('LIVE_DATASET_CORRECTION',term,field,'PASS',flush=True)
               for name,width,height in [('small-phone',320,740),('phone',390,844),('tablet',768,1024),('desktop',1440,900)]:
                 await page.set_viewport_size({'width':width,'height':height})
                 fits=await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
