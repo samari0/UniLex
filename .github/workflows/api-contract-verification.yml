@@ -1,0 +1,94 @@
+name: Live UniLex API contract verification
+
+on:
+  push:
+    branches: [verify/api-contract-20261009]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  api-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Test public API and frontend compatibility (read-only)
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import time
+          from urllib.request import Request, urlopen
+          from urllib.parse import urlencode, quote
+          from urllib.error import HTTPError
+          BASE = "https://unilex-samar.onrender.com"
+          passed = []
+          def request(path, params=None, body=None):
+              url = BASE+path+('?' + urlencode(params) if params is not None else '')
+              data = json.dumps(body).encode('utf-8') if body is not None else None
+              req = Request(url, data=data, headers={'Content-Type':'application/json'} if data is not None else {})
+              for trial in range(2):
+                  try:
+                      with urlopen(req,timeout=125) as res:
+                          raw=res.read()
+                          ctype=res.headers.get('Content-Type','')
+                          return res.status, json.loads(raw) if 'json' in ctype else raw.decode('utf-8','replace')
+                  except HTTPError as e:
+                      return e.code, json.loads(e.read())
+                  except Exception as e:
+                      if trial:
+                          raise
+                      print("RETRY",path,type(e).__name__,str(e),flush=True)
+                      time.sleep(8)
+          def check(name, expression):
+              assert expression, name
+              passed.append(name)
+              print("PASS",name,flush=True)
+          health_code,health=request('/health')
+          check('health 200 and 3067 dictionary entries',health_code==200 and health.get('status')=='ok' and health.get('terms_loaded')==3067)
+          check('semantic model available',health.get('semantic_search_available') is True)
+          page_code,page=request('/')
+          check('homepage served by backend',page_code==200 and '<title>UniLex' in page)
+          config_code,config=request('/config.js')
+          check('frontend same-origin API config',config_code==200 and 'window.UNILEX_API_BASE = ""' in config)
+          script_code,script=request('/app.js')
+          check('frontend uses correct API endpoints',script_code==200 and '"/search/semantic"' in script and '"/search"' in script and "request('/extract'" in script)
+          code,term=request('/term/Overfitting')
+          required={'term','formal_definition','student_friendly_explanation','example','category','difficulty','related_terms','source'}
+          check('exact lookup full card 200',code==200 and term.get('term')=='Overfitting' and required<=term.keys() and isinstance(term['related_terms'],list))
+          code,term_low=request('/term/overfitting')
+          check('case-insensitive exact lookup',code==200 and term_low.get('term')=='Overfitting')
+          code,error=request('/term/not_a_real_unilex_term')
+          check('unknown term is 404 not 500',code==404 and 'detail' in error)
+          code,kw=request('/search',{'q':'Overfitting','top_k':5})
+          check('keyword search result structure',code==200 and kw.get('query')=='Overfitting' and kw.get('method')=='tfidf' and isinstance(kw.get('results'),list) and kw['results'][0]['term']=='Overfitting' and required|{'score'}<=kw['results'][0].keys())
+          code,empty=request('/search',{'q':''})
+          check('keyword empty input 200 []',code==200 and empty.get('results')==[])
+          code,unknown=request('/search',{'q':'xyzabc123'})
+          check('keyword no results 200 []',code==200 and unknown.get('results')==[])
+          code,bad_limit=request('/search',{'q':'Overfitting','top_k':0})
+          check('invalid top_k zero returns 422',code==422)
+          code,bad_limit2=request('/search/semantic',{'q':'Overfitting','top_k':21})
+          check('semantic invalid top_k 21 returns 422',code==422)
+          code,longquery=request('/search',{'q':'a'*1001})
+          check('query longer than 1000 rejected 422',code==422)
+          code,semantic_empty=request('/search/semantic',{'q':'   '})
+          check('smart search empty input 200 []',code==200 and semantic_empty.get('method')=='sbert' and semantic_empty.get('results')==[])
+          code,semantic=request('/search/semantic',{'q':'Overfitting','top_k':5})
+          check('smart search response structure',code==200 and semantic.get('method')=='sbert' and semantic.get('results') and semantic['results'][0]['term']=='Overfitting' and required|{'score'}<=semantic['results'][0].keys())
+          code,extract_empty=request('/extract',body={'text':''})
+          check('empty lecture input 200 []',code==200 and extract_empty.get('terms_found')==[])
+          code,extract_none=request('/extract',body={'text':'I bought bread and milk.'})
+          check('lecture no-match 200 []',code==200 and extract_none.get('terms_found')==[])
+          sample='Machine learning models can suffer from overfitting.'
+          code,extract=request('/extract',body={'text':sample})
+          extraction_terms={e['term'] for e in extract.get('terms_found',[])}
+          check('lecture matching, fields, text length',code==200 and extract.get('text_length')==len(sample) and {'Machine Learning','Overfitting'}<=extraction_terms and all(required<=e.keys() for e in extract['terms_found']))
+          code,longtext=request('/extract',body={'text':'a'*20001})
+          check('lecture over 20000 chars rejected 422',code==422)
+          code,no_field=request('/extract',body={})
+          check('lecture missing text rejected 422',code==422)
+          print("COMPLETE",len(passed),"API/FRONTEND CONTRACT CHECKS PASSED",flush=True)
+          PY
