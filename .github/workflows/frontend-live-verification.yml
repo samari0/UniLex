@@ -1,0 +1,82 @@
+name: UniLex frontend and responsive verification
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  ui-fixture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install browser test
+        run: |
+          python -m pip install -r tests/requirements.txt
+          python -m playwright install --with-deps chromium
+      - name: Test UI states and viewports with controlled API replies
+        run: python tests/ui_acceptance.py
+
+  production-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Install Playwright Chromium
+        run: |
+          python -m pip install playwright==1.51.0
+          python -m playwright install --with-deps chromium
+      - name: Test real deployed page and keyword integration
+        shell: bash
+        run: |
+          python - <<'PY'
+          import asyncio
+          from playwright.async_api import async_playwright
+          URL="https://unilex-samar.onrender.com"
+          async def main():
+            async with async_playwright() as p:
+              browser=await p.chromium.launch(headless=True,args=['--no-sandbox'])
+              page=await browser.new_page(viewport={'width':390,'height':844})
+              errors=[]
+              page.on('pageerror',lambda e:errors.append(str(e)))
+              response=await page.goto(URL,timeout=180000,wait_until='domcontentloaded')
+              assert response.status==200
+              await page.locator('#search-input').wait_for()
+              print("FRONTEND Loaded production website",flush=True)
+              for name,width,height in [('small-phone',320,740),('phone',390,844),('tablet',768,1024),('desktop',1440,900)]:
+                await page.set_viewport_size({'width':width,'height':height})
+                fits=await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
+                print('VIEWPORT',name,width,'fits',fits,flush=True)
+                assert fits,name
+              await page.set_viewport_size({'width':390,'height':844})
+              await page.click('#search-btn')
+              assert 'Enter a term' in await page.locator('#search-status').inner_text()
+              await page.fill('#search-input','Overfitting')
+              await page.click('#search-btn')
+              await page.wait_for_function('!document.querySelector("#search-btn").disabled',timeout=110000)
+              first=await page.locator('#results h3').first.inner_text()
+              assert first=='Overfitting',first
+              cards=await page.locator('#results article.entry-card').count()
+              assert cards>0,cards
+              print('LIVE_KEYWORD_UI',first,cards,flush=True)
+              await page.fill('#search-input','xyzabc123')
+              await page.press('#search-input','Enter')
+              await page.wait_for_function('!document.querySelector("#search-btn").disabled',timeout=110000)
+              no_result=await page.locator('#results').inner_text()
+              assert 'No matching terms' in no_result,no_result
+              print('LIVE_NO_RESULTS_UI',no_result[:110],flush=True)
+              await page.click('#extract-btn')
+              assert 'Paste some lecture text' in await page.locator('#extract-results').inner_text()
+              await page.fill('#lecture-input','Machine learning models can suffer from overfitting.')
+              await page.click('#extract-btn')
+              await page.wait_for_function('!document.querySelector("#extract-btn").disabled',timeout=110000)
+              found=await page.locator('#extract-results h3').all_inner_texts()
+              assert 'Machine Learning' in found and 'Overfitting' in found,found
+              print('LIVE_EXTRACT_UI',found[:8],flush=True)
+              assert not errors,errors
+              await browser.close()
+              print('PRODUCTION_FRONTEND_BROWSER_PASSED',flush=True)
+          asyncio.run(main())
+          PY
