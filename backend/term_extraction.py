@@ -1,5 +1,7 @@
 """Dictionary lemma/alias matching, with punctuation and ambiguity guards."""
 import re
+import threading
+import numpy as np
 import pandas as pd
 from preprocessing import get_nlp
 
@@ -13,6 +15,7 @@ class TermExtractor:
     def __init__(self, df: pd.DataFrame):
         self.df = df
         self.nlp = get_nlp()
+        self._lock = threading.Lock()
         self.term_to_index, self.surface_to_index = {}, {}
         self.max_term_len = 1
         aliases = []
@@ -35,7 +38,19 @@ class TermExtractor:
     def extract(self,text: str) -> list[dict]:
         if not isinstance(text,str) or not text.strip():
             return []
-        doc=self.nlp(text)
+        # Only POS and lemmas are needed. Bound neural inference memory for
+        # long lectures and retain the original token stream/character offsets,
+        # so a dictionary term can still span a processing chunk boundary.
+        with self._lock:
+            doc = self.nlp.make_doc(text)
+            attributes = np.zeros((len(doc), 2), dtype='uint64')
+            for start in range(0, len(doc), 128):
+                end = min(start + 128, len(doc))
+                left, right = max(0, start - 8), min(len(doc), end + 8)
+                chunk = self.nlp(doc[left:right].as_doc(), disable=['parser', 'ner'])
+                attributes[start:end] = chunk.to_array(['LEMMA', 'POS'])[start-left:end-left]
+                del chunk
+            doc.from_array(['LEMMA', 'POS'], attributes)
         context=any(t.lemma_.casefold() in TECHNICAL for t in doc)
         segments,current=[],[]
         for t in doc:
