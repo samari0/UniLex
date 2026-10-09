@@ -8,6 +8,8 @@ Returned scores remain SBERT cosine similarities, not reranker probabilities.
 from collections import Counter
 import ctypes
 import gc
+import hashlib
+import json
 import os
 import re
 import sys
@@ -70,16 +72,25 @@ class SemanticSearch:
         self.model = SentenceTransformer(MODEL_NAME, device="cpu")
         cache_path = os.path.join(cache_dir, EMBEDDINGS_CACHE)
 
-        if os.path.exists(cache_path):
-            self.embeddings = np.load(cache_path)
-            if self.embeddings.shape[0] != len(search_texts):
-                self.embeddings = self._encode_and_cache(
-                    search_texts, cache_path
-                )
-        else:
-            self.embeddings = self._encode_and_cache(
-                search_texts, cache_path
-            )
+        fingerprint = hashlib.sha256(json.dumps(
+            [MODEL_NAME, search_texts], ensure_ascii=False
+        ).encode("utf-8")).hexdigest()
+        metadata_path = cache_path + ".sha256"
+        cached = None
+        try:
+            with open(metadata_path, encoding="utf-8") as f:
+                if f.read().strip() == fingerprint:
+                    cached = np.load(cache_path, allow_pickle=False)
+            if cached is not None and (cached.shape != (len(search_texts),
+                    self.model.get_sentence_embedding_dimension()) or
+                    not np.isfinite(cached).all()):
+                cached = None
+        except (OSError, ValueError):
+            cached = None
+        self.embeddings = cached if cached is not None else self._encode_and_cache(search_texts, cache_path)
+        if cached is None:
+            with open(metadata_path, "w", encoding="utf-8") as f:
+                f.write(fingerprint)
 
     def _encode_and_cache(
         self, search_texts: list[str], cache_path: str
@@ -172,6 +183,17 @@ class SemanticSearch:
             query_vec = self.model.encode([query], convert_to_numpy=True)
             scores = cosine_similarity(query_vec, self.embeddings).flatten()
             exact = [term == query.casefold() for term in self._terms]
+            # An isolated acronym explicitly present in a definition supplies
+            # dictionary evidence even when sentence similarity is weak.
+            # Use uppercase corpus spelling to avoid ordinary-word matches.
+            if re.fullmatch(r"[A-Za-z][A-Za-z0-9-]{1,9}", query) and not any(exact):
+                acronym = re.compile(r"(?<!\w)" + re.escape(query.upper()) + r"(?!\w)")
+                aliases = [i for i, definition in enumerate(self._definitions)
+                           if acronym.search(definition)]
+                if aliases:
+                    aliases.sort(key=lambda i: (-float(scores[i]), i))
+                    return [{"index": int(i), "score": float(scores[i])}
+                            for i in aliases[:top_k]]
             finite = [i for i, score in enumerate(scores) if np.isfinite(score)]
 
             # Preserve the tested exact-term behavior and unrelated-query gate.

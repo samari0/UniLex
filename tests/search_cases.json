@@ -1,0 +1,159 @@
+[
+  {
+    "q": "Overfitting",
+    "expected": [
+      "Overfitting"
+    ]
+  },
+  {
+    "q": "machine learning",
+    "expected": [
+      "Machine Learning"
+    ]
+  },
+  {
+    "q": "why does a model memorize training data?",
+    "expected": [
+      "Overfitting",
+      "Overfitting In Machine Learning",
+      "Overfitting In Ai."
+    ]
+  },
+  {
+    "q": "My model memorizes the training examples instead of learning patterns that work on new data.",
+    "expected": [
+      "Overfitting",
+      "Overfitting In Machine Learning",
+      "Overfitting In Ai."
+    ]
+  },
+  {
+    "q": "Why does my model perform well on training data but poorly on unseen data?",
+    "expected": [
+      "Overfitting",
+      "Overfitting In Machine Learning"
+    ]
+  },
+  {
+    "q": "Which data structure follows first in first out?",
+    "expected": [
+      "Queue",
+      "A Queue Data Structure"
+    ]
+  },
+  {
+    "q": "Which data structure follows last in first out?",
+    "expected": [
+      "Stack",
+      "A Stack Data Structure"
+    ]
+  },
+  {
+    "q": "FIFO",
+    "expected": [
+      "Queue",
+      "A Queue Data Structure",
+      "The First-In, First-Out Page Replacement Algorithm."
+    ]
+  },
+  {
+    "q": "LIFO",
+    "expected": [
+      "Stack",
+      "A Stack Data Structure"
+    ]
+  },
+  {
+    "q": "How do I predict a continuous numerical value from input features?",
+    "expected": [
+      "Regression"
+    ]
+  },
+  {
+    "q": "Which learning task predicts continuous numerical values?",
+    "expected": [
+      "Regression"
+    ]
+  },
+  {
+    "q": "What supervised learning task predicts a continuous numerical value?",
+    "expected": [
+      "Regression"
+    ]
+  },
+  {
+    "q": "What is it called when test information accidentally enters model training?",
+    "expected": [
+      "Data Leakage",
+      "Pipeline Leakage"
+    ]
+  },
+  {
+    "q": "My model is too simple and performs poorly on both training and test data.",
+    "expected": [
+      "Underfitting"
+    ]
+  },
+  {
+    "q": "What technique randomly disables neurons during training?",
+    "expected": [
+      "Dropout",
+      "Dropout Regularization In Neural Networks"
+    ]
+  },
+  {
+    "q": "How can computers learn from examples instead of explicit rules?",
+    "expected": [
+      "Machine Learning",
+      "Machine Learning (ML)"
+    ]
+  },
+  {
+    "q": "How can I group similar data points without labels?",
+    "expected": [
+      "Clustering",
+      "Cluster"
+    ]
+  },
+  {
+    "q": "How do I determine whether a review is positive or negative?",
+    "expected": [
+      "Sentiment Analysis"
+    ]
+  },
+  {
+    "q": "I need to predict a house price rather than a category.",
+    "expected": [
+      "Regression",
+      "Linear Regression"
+    ]
+  },
+  {
+    "q": "How can I evaluate a model using different folds of data?",
+    "expected": [
+      "Cross-validation",
+      "K-Fold Cross-Validation",
+      "K-Fold Cross Validation"
+    ]
+  },
+  {
+    "q": "why does lamya call herself a queen?",
+    "expected": []
+  },
+  {
+    "q": "xyzabc123",
+    "expected": []
+  },
+  {
+    "q": "What pizza should I order tonight?",
+    "expected": []
+  },
+  {
+    "q": "",
+    "expected": []
+  },
+  {
+    "q": "   ",
+    "expected": []
+  }
+]

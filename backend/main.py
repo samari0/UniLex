@@ -17,7 +17,7 @@ from fastapi.staticfiles import StaticFiles
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from data_loader import load_dataset, build_search_text, to_entry_dict
 from search_tfidf import TfidfSearch
@@ -89,7 +89,7 @@ app.add_middleware(
 
 
 class ExtractRequest(BaseModel):
-    text: str
+    text: str = Field(max_length=20000)
 
 
 @app.get("/health")
@@ -113,7 +113,7 @@ def get_term(term_name: str):
 
 
 @app.get("/search")
-def search(q: str = Query(..., min_length=1), top_k: int = 5):
+def search(q: str = Query("", max_length=1000), top_k: int = Query(5, ge=1, le=20)):
     df = STATE["df"]
     hits = STATE["tfidf"].search(q, top_k=top_k)
     return {
@@ -127,15 +127,17 @@ def search(q: str = Query(..., min_length=1), top_k: int = 5):
 
 
 @app.get("/search/semantic")
-def search_semantic(q: str = Query(..., min_length=1), top_k: int = 5):
+def search_semantic(q: str = Query("", max_length=1000), top_k: int = Query(5, ge=1, le=20)):
     df = STATE["df"]
+    if not q.strip():
+        return {"query": q, "method": "sbert", "results": []}
     semantic = STATE.get("semantic")
     if semantic is None:
         raise HTTPException(
             status_code=503,
             detail=(
                 "Semantic search model is unavailable right now "
-                f"({STATE.get('semantic_error') or 'model not loaded'}). "
+
                 "Try /search for TF-IDF keyword search instead."
             ),
         )

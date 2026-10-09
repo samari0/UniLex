@@ -1,0 +1,373 @@
+[
+  {
+    "q": "Overfitting",
+    "expected": [
+      "Overfitting"
+    ],
+    "actual": [
+      "Overfitting",
+      "Overfitting In Machine Learning",
+      "Overfitting In Ai.",
+      "Benign Overfitting",
+      "Underfitting"
+    ],
+    "keyword_actual": [
+      "Overfitting",
+      "Overfitting In Machine Learning",
+      "Benign Overfitting",
+      "Overfitting In Ai.",
+      "Validation Curve"
+    ],
+    "passed": true
+  },
+  {
+    "q": "machine learning",
+    "expected": [
+      "Machine Learning"
+    ],
+    "actual": [
+      "Machine Learning",
+      "Machine Learning For Beginners",
+      "Machine Learning (ML)",
+      "Causal Machine Learning",
+      "Supervised Learning In Ml"
+    ],
+    "keyword_actual": [
+      "Machine Learning",
+      "The Difference Between Machine Learning And Deep Learning",
+      "Numpy Used For In Machine Learning",
+      "Causal Machine Learning",
+      "Transfer Learning In Machine Learning"
+    ],
+    "passed": true
+  },
+  {
+    "q": "why does a model memorize training data?",
+    "expected": [
+      "Overfitting",
+      "Overfitting In Machine Learning",
+      "Overfitting In Ai."
+    ],
+    "actual": [
+      "Overfitting"
+    ],
+    "keyword_actual": [
+      "Canary Insertion",
+      "Overfitting In Ai.",
+      "Deduplication of Training Data",
+      "Overfitting In Machine Learning",
+      "Learning Curve Analysis"
+    ],
+    "passed": true
+  },
+  {
+    "q": "My model memorizes the training examples instead of learning patterns that work on new data.",
+    "expected": [
+      "Overfitting",
+      "Overfitting In Machine Learning",
+      "Overfitting In Ai."
+    ],
+    "actual": [
+      "Overfitting",
+      "Overfitting In Machine Learning"
+    ],
+    "keyword_actual": [
+      "Overfitting In Ai.",
+      "A Training Dataset In Ml",
+      "Overfitting In Machine Learning",
+      "Overfitting"
+    ],
+    "passed": true
+  },
+  {
+    "q": "Why does my model perform well on training data but poorly on unseen data?",
+    "expected": [
+      "Overfitting",
+      "Overfitting In Machine Learning"
+    ],
+    "actual": [
+      "Overfitting"
+    ],
+    "keyword_actual": [
+      "Overfitting",
+      "Underfitting",
+      "Overfitting In Machine Learning",
+      "Overfitting In Ai.",
+      "The Train-Test Split In Machine Learning"
+    ],
+    "passed": true
+  },
+  {
+    "q": "Which data structure follows first in first out?",
+    "expected": [
+      "Queue",
+      "A Queue Data Structure"
+    ],
+    "actual": [
+      "Queue",
+      "A Queue Data Structure"
+    ],
+    "keyword_actual": [
+      "A Stack Data Structure",
+      "A Queue Data Structure",
+      "Data Structure",
+      "Queue",
+      "Stack"
+    ],
+    "passed": true
+  },
+  {
+    "q": "Which data structure follows last in first out?",
+    "expected": [
+      "Stack",
+      "A Stack Data Structure"
+    ],
+    "actual": [
+      "Stack",
+      "A Stack Data Structure"
+    ],
+    "keyword_actual": [
+      "A Stack Data Structure",
+      "A Queue Data Structure",
+      "Data Structure",
+      "Queue",
+      "Stack"
+    ],
+    "passed": true
+  },
+  {
+    "q": "FIFO",
+    "expected": [
+      "Queue",
+      "A Queue Data Structure",
+      "The First-In, First-Out Page Replacement Algorithm."
+    ],
+    "actual": [
+      "The First-In, First-Out Page Replacement Algorithm.",
+      "Queue",
+      "A Queue Data Structure",
+      "Page Replacement In Memory Management"
+    ],
+    "keyword_actual": [
+      "A Queue Data Structure",
+      "The First-In, First-Out Page Replacement Algorithm.",
+      "Queue"
+    ],
+    "passed": true
+  },
+  {
+    "q": "LIFO",
+    "expected": [
+      "Stack",
+      "A Stack Data Structure"
+    ],
+    "actual": [
+      "Stack",
+      "A Stack Data Structure",
+      "A Stack Class In Java Collections",
+      "The Stack In Jvm Memory Management"
+    ],
+    "keyword_actual": [
+      "A Stack Class In Java Collections",
+      "A Stack Data Structure",
+      "Stack"
+    ],
+    "passed": true
+  },
+  {
+    "q": "How do I predict a continuous numerical value from input features?",
+    "expected": [
+      "Regression"
+    ],
+    "actual": [
+      "Regression"
+    ],
+    "keyword_actual": [
+      "Regression",
+      "Feature Importance",
+      "An Mlops Concept Drift Phenomenon"
+    ],
+    "passed": true
+  },
+  {
+    "q": "Which learning task predicts continuous numerical values?",
+    "expected": [
+      "Regression"
+    ],
+    "actual": [
+      "Regression"
+    ],
+    "keyword_actual": [
+      "Regression"
+    ],
+    "passed": true
+  },
+  {
+    "q": "What supervised learning task predicts a continuous numerical value?",
+    "expected": [
+      "Regression"
+    ],
+    "actual": [
+      "Regression"
+    ],
+    "keyword_actual": [
+      "Supervised Learning",
+      "Regression"
+    ],
+    "passed": true
+  },
+  {
+    "q": "What is it called when test information accidentally enters model training?",
+    "expected": [
+      "Data Leakage",
+      "Pipeline Leakage"
+    ],
+    "actual": [
+      "Data Leakage"
+    ],
+    "keyword_actual": [
+      "Data Leakage"
+    ],
+    "passed": true
+  },
+  {
+    "q": "My model is too simple and performs poorly on both training and test data.",
+    "expected": [
+      "Underfitting"
+    ],
+    "actual": [
+      "Underfitting"
+    ],
+    "keyword_actual": [
+      "Underfitting",
+      "The Train-Test Split In Machine Learning",
+      "Overfitting",
+      "Data Leakage",
+      "Cross-validation"
+    ],
+    "passed": true
+  },
+  {
+    "q": "What technique randomly disables neurons during training?",
+    "expected": [
+      "Dropout",
+      "Dropout Regularization In Neural Networks"
+    ],
+    "actual": [
+      "Dropout Regularization In Neural Networks",
+      "Dropout"
+    ],
+    "keyword_actual": [
+      "Dropout Regularization In Neural Networks",
+      "Dropout",
+      "Regularization"
+    ],
+    "passed": true
+  },
+  {
+    "q": "How can computers learn from examples instead of explicit rules?",
+    "expected": [
+      "Machine Learning",
+      "Machine Learning (ML)"
+    ],
+    "actual": [
+      "Machine Learning"
+    ],
+    "keyword_actual": [],
+    "passed": true
+  },
+  {
+    "q": "How can I group similar data points without labels?",
+    "expected": [
+      "Clustering",
+      "Cluster"
+    ],
+    "actual": [
+      "Cluster"
+    ],
+    "keyword_actual": [
+      "Cluster",
+      "DBSCAN",
+      "Unsupervised Learning",
+      "Clustering",
+      "Active Learning (AL)"
+    ],
+    "passed": true
+  },
+  {
+    "q": "How do I determine whether a review is positive or negative?",
+    "expected": [
+      "Sentiment Analysis"
+    ],
+    "actual": [],
+    "keyword_actual": [
+      "False Positive (FP)",
+      "True Negative (TN)",
+      "Triplet Loss",
+      "A Confusion Matrix In Machine Learning"
+    ],
+    "passed": false
+  },
+  {
+    "q": "I need to predict a house price rather than a category.",
+    "expected": [
+      "Regression",
+      "Linear Regression"
+    ],
+    "actual": [],
+    "keyword_actual": [],
+    "passed": false
+  },
+  {
+    "q": "How can I evaluate a model using different folds of data?",
+    "expected": [
+      "Cross-validation",
+      "K-Fold Cross-Validation",
+      "K-Fold Cross Validation"
+    ],
+    "actual": [
+      "Cross-validation"
+    ],
+    "keyword_actual": [
+      "K-Fold Cross Validation.",
+      "Cross-validation",
+      "Cross Validation."
+    ],
+    "passed": true
+  },
+  {
+    "q": "why does lamya call herself a queen?",
+    "expected": [],
+    "actual": [],
+    "keyword_actual": [],
+    "passed": true
+  },
+  {
+    "q": "xyzabc123",
+    "expected": [],
+    "actual": [],
+    "keyword_actual": [],
+    "passed": true
+  },
+  {
+    "q": "What pizza should I order tonight?",
+    "expected": [],
+    "actual": [],
+    "keyword_actual": [],
+    "passed": true
+  },
+  {
+    "q": "",
+    "expected": [],
+    "actual": [],
+    "keyword_actual": [],
+    "passed": true
+  },
+  {
+    "q": "   ",
+    "expected": [],
+    "actual": [],
+    "keyword_actual": [],
+    "passed": true
+  }
+]

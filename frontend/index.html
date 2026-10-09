@@ -18,13 +18,14 @@
         <input
           id="search-input"
           type="text"
-          placeholder='Ask anything — e.g. "why does the model overfit?"'
-          autocomplete="off"
+          placeholder='Describe a CS or AI concept — e.g. "why does the model overfit?"'
+          autocomplete="off" maxlength="1000" aria-label="Search CS and AI terms" aria-describedby="search-help"
         />
         <button id="search-btn">Search</button>
       </div>
 
-      <div class="search-mode">
+      <p id="search-help" class="hint">Keyword search matches words. Smart search finds related concepts by meaning; results may need review.</p>
+      <div class="search-mode" role="group" aria-label="Search method">
         <label>
           <input type="radio" name="mode" value="tfidf" checked />
           Keyword search (fast)
@@ -35,21 +36,21 @@
         </label>
       </div>
 
-      <p id="search-status" class="status"></p>
+      <p id="search-status" class="status" role="status" aria-live="polite"></p>
     </section>
 
     <section id="results" class="results"></section>
 
     <section class="extract-section">
       <h2>Paste lecture text</h2>
-      <p class="hint">UniLex will find every term from its dictionary that appears in your text.</p>
+      <p class="hint">Paste your notes to find matching dictionary terms. Some ambiguous words or unfamiliar forms may be missed.</p>
       <textarea
-        id="lecture-input"
+        id="lecture-input" maxlength="20000" aria-label="Lecture text"
         rows="6"
         placeholder="Paste a paragraph from your lecture notes or slides here..."
       ></textarea>
       <button id="extract-btn">Find terms</button>
-      <div id="extract-results" class="results"></div>
+      <div id="extract-results" class="results" aria-live="polite"></div>
     </section>
   </main>
 
