@@ -2,6 +2,8 @@
 TF-IDF search with exact-term priority and relevance filtering.
 """
 
+import re
+
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -49,6 +51,16 @@ class TfidfSearch:
     def search(self, query: str, top_k: int = 5) -> list[dict]:
         if not isinstance(query, str) or top_k <= 0:
             return []
+
+        # Stopword filtering drops "in/out", erasing the critical difference
+        # between first-in-first-out and last-in-first-out. Preserve their
+        # established CS acronyms as lexical query evidence.
+        normalized = re.sub(r"[^a-z0-9]+", " ", query.casefold()).strip()
+        tokens = set(normalized.split())
+        if re.search(r"\bfirst in first out\b", normalized) and "fifo" not in tokens:
+            query += " FIFO"
+        elif re.search(r"\blast in first out\b", normalized) and "lifo" not in tokens:
+            query += " LIFO"
 
         query_clean = clean_text(query)
         if not query_clean.strip():
