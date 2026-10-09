@@ -74,3 +74,49 @@ jobs:
           print("DIAGNOSTIC FIFO", [entry["term"] for entry in fifo["results"]], flush=True)
           print("LIVE KEYWORD TESTS PASSED", flush=True)
           PY
+
+  patched-keyword-local:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install TF-IDF dependencies
+        run: python -m pip install --disable-pip-version-check pandas==2.2.3 scikit-learn==1.6.1 nltk==3.9.1
+      - name: Run real dataset regression against changed file
+        shell: bash
+        run: |
+          python - <<'PY'
+          import sys
+          import types
+          sys.modules["spacy"] = types.ModuleType("spacy")
+          sys.path.insert(0,"backend")
+          from data_loader import load_dataset, build_search_text
+          from search_tfidf import TfidfSearch
+
+          df=load_dataset()
+          engine=TfidfSearch(df,[build_search_text(row) for _,row in df.iterrows()])
+
+          cases=[
+            ("Overfitting",{"Overfitting"}),
+            ("machine learning",{"Machine Learning"}),
+            ("Which data structure follows first in first out?",{"Queue","A Queue Data Structure"}),
+            ("Which data structure follows last in first out?",{"Stack","A Stack Data Structure"}),
+            ("First-In-First-Out",{"Queue","A Queue Data Structure","The First-In, First-Out Page Replacement Algorithm."}),
+            ("Last-In-First-Out",{"Stack","A Stack Data Structure"}),
+          ]
+          for query,expected in cases:
+            names=[df.iloc[result["index"]]["term"] for result in engine.search(query)]
+            print("QUERY",repr(query),"RESULT",names,flush=True)
+            assert names and names[0] in expected, (query,names)
+
+          for query in ["","   ","xyzabc123","why does lamya call herself a queen?","What pizza should I order tonight?"]:
+            names=[df.iloc[result["index"]]["term"] for result in engine.search(query)]
+            print("NEGATIVE",repr(query),"RESULT",names,flush=True)
+            assert names == [],(query,names)
+
+          q="why does a model memorize training data?"
+          names=[df.iloc[result["index"]]["term"] for result in engine.search(q)]
+          print("MEMORIZATION",names,flush=True)
+          assert any(x in names for x in ["Overfitting","Overfitting In Ai.","Overfitting In Machine Learning","Canary Insertion"])
+          print("PATCHED TF-IDF REGRESSION PASSED",flush=True)
+          PY
