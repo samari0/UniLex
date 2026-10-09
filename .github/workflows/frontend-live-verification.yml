@@ -41,8 +41,18 @@ jobs:
               page=await browser.new_page(viewport={'width':390,'height':844})
               errors=[]
               page.on('pageerror',lambda e:errors.append(str(e)))
-              response=await page.goto(URL,timeout=180000,wait_until='domcontentloaded')
-              assert response.status==200
+              response=None
+              for attempt in range(4):
+                try:
+                  response=await page.goto(URL,timeout=180000,wait_until='domcontentloaded')
+                  status=response.status if response else None
+                  print('LIVE_PAGE_ATTEMPT',attempt+1,'STATUS',status,'URL',page.url,flush=True)
+                  if status==200:
+                    break
+                except Exception as exc:
+                  print('LIVE_PAGE_ATTEMPT',attempt+1,'ERROR',type(exc).__name__,str(exc)[:400],flush=True)
+                await asyncio.sleep(12)
+              assert response is not None and response.status==200,('Site unavailable via browser', response.status if response else None)
               await page.locator('#search-input').wait_for()
               print("FRONTEND Loaded production website",flush=True)
               for name,width,height in [('small-phone',320,740),('phone',390,844),('tablet',768,1024),('desktop',1440,900)]:
