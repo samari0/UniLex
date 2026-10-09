@@ -1,0 +1,119 @@
+{
+  "url": "https://unilex-samar.onrender.com",
+  "checks": [
+    {
+      "check": "health",
+      "actual": {
+        "status": "ok",
+        "terms_loaded": 3067,
+        "semantic_search_available": true,
+        "semantic_search_error": null
+      },
+      "passed": true
+    },
+    {
+      "check": "Why does my model perform well on training data but poorly on unseen data?",
+      "actual": [
+        "Overfitting"
+      ],
+      "passed": true
+    },
+    {
+      "check": "Which data structure follows first in first out?",
+      "actual": [
+        "Queue",
+        "A Queue Data Structure"
+      ],
+      "passed": true
+    },
+    {
+      "check": "What is it called when test information accidentally enters model training?",
+      "actual": [
+        "Data Leakage"
+      ],
+      "passed": true
+    },
+    {
+      "check": "How do I predict a continuous numerical value from input features?",
+      "actual": [
+        "Regression"
+      ],
+      "passed": true
+    },
+    {
+      "check": "LIFO",
+      "actual": [
+        "Stack",
+        "A Stack Data Structure",
+        "A Stack Class In Java Collections",
+        "The Stack In Jvm Memory Management"
+      ],
+      "passed": true
+    },
+    {
+      "check": "why does lamya call herself a queen?",
+      "actual": [],
+      "passed": true
+    },
+    {
+      "check": "xyzabc123",
+      "actual": [],
+      "passed": true
+    },
+    {
+      "check": "empty /search",
+      "actual": {
+        "query": "",
+        "method": "tfidf",
+        "results": []
+      },
+      "passed": true
+    },
+    {
+      "check": "empty /search/semantic",
+      "actual": {
+        "query": "",
+        "method": "sbert",
+        "results": []
+      },
+      "passed": true
+    },
+    {
+      "check": "unknown term",
+      "actual": 404,
+      "passed": true
+    },
+    {
+      "check": "extract ",
+      "actual": [],
+      "passed": true
+    },
+    {
+      "check": "extract I waited in a queue for coffee.",
+      "actual": [],
+      "passed": true
+    },
+    {
+      "check": "extract Machine learning uses neural networks. Overfitting can be reduced with regularization.",
+      "actual": [
+        "Machine Learning",
+        "Neural Network",
+        "Overfitting",
+        "Regularization"
+      ],
+      "passed": true
+    },
+    {
+      "check": "keyword machine learning",
+      "actual": [
+        "Machine Learning",
+        "The Difference Between Machine Learning And Deep Learning",
+        "Numpy Used For In Machine Learning",
+        "Causal Machine Learning",
+        "Transfer Learning In Machine Learning"
+      ],
+      "passed": true
+    }
+  ],
+  "tested_at_utc": "2026-10-09T07:00:49Z"
+}

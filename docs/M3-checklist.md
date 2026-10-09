@@ -7,12 +7,12 @@ Source: Part 1 of UniLex_Full_Work_Plan_From_Start_to_Finish(1).docx, plus the b
 | Item | Implementation / evidence | Verification |
 |---|---|---|
 | Keyword search | Exact-match priority repaired; thresholds documented in README; fixed queries in both modes | Local regression report |
-| Smart search | API retained; existing relevance gates retained; content fingerprint prevents stale embeddings | Local regression report; live verification pending |
+| Smart search | API retained; existing relevance gates retained; content fingerprint prevents stale embeddings | Local regression report; live smoke checks passed |
 | API | Empty input, 404 unknown term, 503 semantic unavailable, 422 limits, complete cards | Automated API checks |
 | Lecture text | Plurals, aliases, punctuation boundaries, ambiguous-word filtering, specialized surface matching | Automated extraction checks |
 | Dataset | 3,067 rows; populated fields; no normalized exact duplicate names; related lists deduplicated | Global structural audit, targeted scientific review only |
 | Frontend | Blank/loading/no-result/error, safe card rendering, source links, related navigation, mode switching, stale-request protection | Chromium fixture checks |
-| Configuration | Existing same-origin config and Render service retained | Deployment and live checks pending |
+| Configuration | Existing same-origin config and Render service retained | Deployment live; 15 live API checks passed |
 | UI/UX | Responsive controls, wrapping, focus indicators, reduced-motion behavior | Four viewport sizes |
 | Group testing | 25 fixed queries; automated API tests; screenshots | See actual test outputs; do not infer all-query accuracy |
 
@@ -48,3 +48,9 @@ This checklist deliberately keeps real-user testing, team evidence, scientific r
 ## Local validation on 9 October 2026
 
 26 API/data/extraction tests passed. The semantic batch explicitly xfailed because two of 25 fixed cases returned no result (house-price and sentiment paraphrases); 23 cases met their expected top-result/empty-result criterion. FIFO alone is ambiguous and accepts the actual FIFO page-replacement concept as well as Queue. Dropout accepts the synonymous dropout-regularization entry. These labels reflect dictionary concepts, not a guarantee of all-query accuracy. All four UI viewport checks passed.
+
+## Verified deployment
+
+Release `e7efdf91f8c8c64555d478d039cb044ae1c4d180`, Render deployment `dep-db48tobbc2fs73b1hjsg`, went live at 2026-10-09 06:58:20 UTC (09:58 Riyadh). Health reports 3,067 entries and semantic search available. All 15 checks in `live-results.json` passed. The real deployed UI also passed blank input, keyword/smart modes, extraction and no-result checks, with desktop and phone screenshots. No error-level entries were returned for the deployed instance between 06:58:20 and 07:01:24 UTC; this is a short observation window, not a long-term uptime guarantee.
+
+Final audit and screenshots are retained on branch `codex/m3-evidence`, based on the deployed release with documentation/tests-only additions. Main retains the deployed application code. Fixture screenshots are separate from `live-*.png` screenshots. The real-browser test uses the managed test proxy; its certificate exception is local to the test harness, not the website configuration, and is not a TLS audit.
