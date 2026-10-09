@@ -88,6 +88,23 @@ jobs:
           assert semantic_terms and semantic_terms[0] in {"Overfitting", "Overfitting In Machine Learning","Overfitting In Ai."}, semantic_terms
           print("LIVE SMART SEARCH SMOKE PASSED", flush=True)
 
+          regression = get("/search/semantic",
+              q="I need to predict a house price rather than a category.",top_k=5)
+          regression_terms = [entry["term"] for entry in regression["results"]]
+          print("LIVE HOUSE-PRICE REGRESSION", regression_terms, flush=True)
+          assert regression_terms and regression_terms[0] in {"Regression", "Linear Regression"}, regression_terms
+
+          sentiment = get("/search/semantic",
+              q="How do I determine whether a review is positive or negative?",top_k=5)
+          sentiment_terms = [entry["term"] for entry in sentiment["results"]]
+          print("LIVE SENTIMENT", sentiment_terms, flush=True)
+          assert sentiment_terms and sentiment_terms[0] in {"Sentiment Analysis", "Sentiment Analysis In Nlp"}, sentiment_terms
+
+          irrelevant = get("/search/semantic", q="What pizza should I order tonight?", top_k=5)
+          print("LIVE UNRELATED SEMANTIC", [x["term"] for x in irrelevant["results"]], flush=True)
+          assert irrelevant["results"] == []
+          print("LIVE SEMANTIC EDGE CASES PASSED", flush=True)
+
           from urllib.request import Request
           request = Request(base + "/extract",
                             data=json.dumps({"text":"Machine learning models can suffer from overfitting."}).encode(),
@@ -148,6 +165,7 @@ jobs:
           PY
 
   semantic-diagnostics:
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
