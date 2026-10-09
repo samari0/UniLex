@@ -65,10 +65,9 @@ class TfidfSearch:
         for idx in scores.argsort()[::-1]:
             score = float(scores[idx])
 
-            if score < self.min_similarity or score <= 0:
-                break
-
             exact_match = query_clean == self._terms[idx]
+            if not exact_match and (score < self.min_similarity or score <= 0):
+                continue
 
             if not exact_match:
                 matched_count = len(

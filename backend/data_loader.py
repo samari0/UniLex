@@ -2,9 +2,10 @@
 Loads and prepares the UniLex dataset for search and lookup.
 """
 import pandas as pd
+from pathlib import Path
 import re
 
-DATASET_PATH = "unilex_dataset.csv"
+DATASET_PATH = Path(__file__).resolve().parent / "unilex_dataset.csv"
 
 
 def load_dataset(path: str = DATASET_PATH) -> pd.DataFrame:
@@ -22,7 +23,11 @@ def load_dataset(path: str = DATASET_PATH) -> pd.DataFrame:
     for col in required:
         df[col] = df[col].fillna("").astype(str).str.strip()
 
-    df["term_lower"] = df["term"].str.lower()
+    if df["term"].eq("").any() or df["formal_definition"].eq("").any():
+        raise ValueError("Terms and definitions must not be empty.")
+    df["term_lower"] = df["term"].str.casefold()
+    if df["term_lower"].duplicated().any():
+        raise ValueError("Duplicate dictionary terms require review.")
     df = df.reset_index(drop=True)
     df["id"] = df.index
     return df
