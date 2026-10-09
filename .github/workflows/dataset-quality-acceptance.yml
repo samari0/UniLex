@@ -1,0 +1,95 @@
+name: UniLex dataset quality acceptance
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  dataset-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compare against the precise original production dataset
+        shell: bash
+        run: |
+          git fetch --no-tags --depth=1 origin 2238f61965c45b4a4794d7dfdcf9a3bf0e7a6f2e
+          git show 2238f61965c45b4a4794d7dfdcf9a3bf0e7a6f2e:backend/unilex_dataset.csv > /tmp/unilex_dataset_before.csv
+          python - <<'PY'
+          import csv
+          from collections import Counter
+          original=''/'' if False else '/tmp/unilex_dataset_before.csv'
+          modified='backend/unilex_dataset.csv'
+          def load(path):
+              with open(path,encoding='utf-8-sig',newline='') as f:
+                  rdr=csv.DictReader(f)
+                  cols=rdr.fieldnames
+                  rows=list(rdr)
+              assert cols==['term','formal_definition','student_friendly_explanation','example','category','difficulty','related_terms','source'],cols
+              assert len(rows)==3067,(path,len(rows))
+              assert all(all(isinstance(v,str) and v.strip() for v in row.values()) for row in rows),path
+              assert len(set(r['term'].casefold() for r in rows))==3067
+              return rows
+          before=load(original)
+          after=load(modified)
+          expected={
+             'APPS': {'student_friendly_explanation','example'},
+             'AIME Benchmark': {'student_friendly_explanation'},
+             'Cross-validation': {'example'},
+             'The Cap Theorem.': {'student_friendly_explanation'},
+          }
+          changed={}
+          for b,a in zip(before,after):
+              assert b['term']==a['term'],(b['term'],a['term'])
+              diffs={key for key in a if a[key]!=b[key]}
+              if diffs:
+                  changed[a['term']]=diffs
+                  assert a['term'] in expected and diffs==expected[a['term']],(a['term'],diffs)
+              assert a['source']==b['source'],"Do not overwrite provenance"
+              assert a['category']==b['category'] and a['difficulty']==b['difficulty']
+          assert changed==expected,(changed,expected)
+          m={r['term']:r for r in after}
+          assert 'AIME Benchmark' not in m['APPS']['example']
+          assert 'Python' in m['APPS']['example'] and 'test cases' in m['APPS']['example']
+          assert 'AMC 10' in m['AIME Benchmark']['student_friendly_explanation']
+          assert 'USAMO' not in m['AIME Benchmark']['student_friendly_explanation']
+          assert 'five folds' in m['Cross-validation']['example']
+          assert 'network partition' in m['The Cap Theorem.']['student_friendly_explanation']
+          print('DATASET QA PASSED: 3067 rows; exactly 4 verified records modified; all other cells and provenance unchanged.',flush=True)
+          PY
+      - name: Install lean TF-IDF requirements
+        run: python -m pip install --disable-pip-version-check pandas==2.2.3 scikit-learn==1.6.1 numpy==1.26.4 nltk==3.9.1
+      - name: Check the deployed dataset loader and search behavior
+        shell: bash
+        run: |
+          python - <<'PY'
+          import sys, types
+          sys.modules['spacy']=types.ModuleType('spacy')
+          sys.path.insert(0,'backend')
+          from data_loader import load_dataset,build_search_text
+          from search_tfidf import TfidfSearch
+          df=load_dataset()
+          assert len(df)==3067
+          engine=TfidfSearch(df,[build_search_text(r) for _,r in df.iterrows()])
+          checks=[
+             ('Overfitting',{'Overfitting'}),
+             ('APPS',{'APPS'}),
+             ('AIME Benchmark',{'AIME Benchmark'}),
+             ('Cross-validation',{'Cross-validation'}),
+             ('The Cap Theorem.',{'The Cap Theorem.'}),
+             ('Which data structure follows first in first out?',{'Queue','A Queue Data Structure'}),
+             ('Which data structure follows last in first out?',{'Stack','A Stack Data Structure'}),
+          ]
+          for q,allowed in checks:
+              terms=[df.iloc[h['index']]['term'] for h in engine.search(q)]
+              print('SEARCH',repr(q),terms[:5],flush=True)
+              assert terms and terms[0] in allowed,(q,terms)
+          for q in ['','xyzabc123','why does lamya call herself a queen?']:
+              terms=[df.iloc[h['index']]['term'] for h in engine.search(q)]
+              print('NEGATIVE',repr(q),terms,flush=True)
+              assert not terms,(q,terms)
+          print('DATASET SEARCH SMOKE PASSED',flush=True)
+          PY
