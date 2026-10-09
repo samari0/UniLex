@@ -1,0 +1,76 @@
+name: UniLex live keyword verification
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [verify/live-keyword-20261009]
+
+permissions:
+  contents: read
+
+jobs:
+  live-keyword:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Test deployed UniLex API (no production code changes)
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import time
+          from urllib.parse import urlencode
+          from urllib.request import urlopen
+          from urllib.error import HTTPError
+
+          base = "https://unilex-samar.onrender.com"
+
+          def get(path, **params):
+              url = base + path + ("?" + urlencode(params) if params else "")
+              for attempt in range(2):
+                  try:
+                      with urlopen(url, timeout=120) as response:
+                          payload = json.load(response)
+                          print("HTTP", response.status, path, repr(params), flush=True)
+                          return payload
+                  except Exception as e:
+                      if attempt:
+                          raise
+                      print("Transient request issue:", repr(e), flush=True)
+                      time.sleep(7)
+
+          health = get("/health")
+          print("HEALTH", health, flush=True)
+          assert health.get("status") == "ok"
+          assert health.get("terms_loaded") == 3067
+
+          cases = [
+              ("exact Overfitting", "Overfitting", "Overfitting"),
+              ("exact machine learning", "machine learning", "Machine Learning"),
+              ("word not in dictionary", "xyzabc123", None),
+              ("unrelated personal question", "why does lamya call herself a queen?", None),
+              ("empty input", "", None),
+          ]
+          for name, query, expected_top in cases:
+              data = get("/search", q=query, top_k=5)
+              terms = [entry["term"] for entry in data["results"]]
+              print("CASE", name, "RESULTS", terms, flush=True)
+              assert data["method"] == "tfidf"
+              if expected_top is None:
+                  assert not terms, (name, terms)
+              else:
+                  assert terms and terms[0] == expected_top, (name, terms)
+
+          memorization = get("/search", q="why does a model memorize training data?", top_k=5)
+          terms = [entry["term"] for entry in memorization["results"]]
+          print("CASE memorization RESULTS", terms, flush=True)
+          assert terms, "Keyword Search must not return an empty result for an in-domain question."
+          assert any(t in {"Overfitting", "Overfitting In Machine Learning",
+                           "Overfitting In Ai.", "Canary Insertion"}
+                     for t in terms), ("Missing any relevant memorization concept", terms)
+
+          fifo = get("/search", q="Which data structure follows first in first out?", top_k=5)
+          print("DIAGNOSTIC FIFO", [entry["term"] for entry in fifo["results"]], flush=True)
+          print("LIVE KEYWORD TESTS PASSED", flush=True)
+          PY
