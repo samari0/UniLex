@@ -1,0 +1,89 @@
+{
+  "canonical_file": "backend/unilex_dataset.csv",
+  "sha256": "dd92f5d527cdd8b59334669cd756eef009688b7660351adef0af8963d335d318",
+  "rows": 3067,
+  "columns": [
+    "term",
+    "formal_definition",
+    "student_friendly_explanation",
+    "example",
+    "category",
+    "difficulty",
+    "related_terms",
+    "source"
+  ],
+  "blank_fields": {
+    "term": 0,
+    "formal_definition": 0,
+    "student_friendly_explanation": 0,
+    "example": 0,
+    "category": 0,
+    "difficulty": 0,
+    "related_terms": 0,
+    "source": 0
+  },
+  "duplicate_normalized_names": 0,
+  "source_labels": {
+    "AI Glossary Reference": 1920,
+    "technical_concept_simplifier": 988,
+    "wikipedia_glossary": 156,
+    "https://research.google/pubs/the-secret-sharer-evaluating-and-testing-unintended-memorization-in-neural-networks/": 1,
+    "https://keras.io/api/data_loading/image/": 1,
+    "https://scikit-learn.org/stable/common_pitfalls.html#data-leakage": 1
+  },
+  "categories": {
+    "AI Applications": 233,
+    "Machine Learning": 231,
+    "Cloud Computing": 228,
+    "Artificial Intelligence": 189,
+    "Deep Learning": 168,
+    "Natural Language Processing": 158,
+    "Databases": 145,
+    "Generative AI": 142,
+    "Computer Networks": 123,
+    "AI Agents": 122,
+    "Computer Vision": 115,
+    "Programming Fundamentals": 108,
+    "Data Structures": 98,
+    "Operating Systems": 90,
+    "Software Engineering": 89,
+    "Evaluation & Metrics": 71,
+    "Datasets & Benchmarks": 68,
+    "Information Retrieval": 62,
+    "Probabilistic Methods": 59,
+    "Algorithms": 56,
+    "Optimization": 54,
+    "MLOps & Engineering": 52,
+    "AI Infrastructure": 50,
+    "Reinforcement Learning": 46,
+    "Models & Architectures": 44,
+    "Speech & Audio": 35,
+    "AI Ethics & Safety": 35,
+    "Science & Healthcare AI": 32,
+    "Robotics & Autonomous Systems": 27,
+    "AI Policy & Governance": 24,
+    "Symbolic AI & Reasoning": 23,
+    "Cognitive Science": 20,
+    "Cybersecurity": 18,
+    "Causal Inference": 17,
+    "Recommender Systems": 16,
+    "Time Series & Forecasting": 12,
+    "Graph & Network Learning": 7
+  },
+  "difficulty": {
+    "intermediate": 2237,
+    "advanced": 588,
+    "beginner": 242
+  },
+  "targeted_review": [
+    "Stack",
+    "Canary Insertion",
+    "Class Index Mismatch",
+    "Data Leakage"
+  ],
+  "limitations": [
+    "Structure was checked globally; scientific correctness was reviewed only for the listed entries.",
+    "Source labels do not establish license or provenance.",
+    "Similar concepts may have multiple distinct term names."
+  ]
+}
