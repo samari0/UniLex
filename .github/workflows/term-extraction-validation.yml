@@ -87,3 +87,30 @@ jobs:
                   assert names==[],(name,names)
           print('LIVE EXTRACTION PASS 4 CASES',flush=True)
           PY
+
+  live-long-lecture:
+    needs: [local-extraction]
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Test a 19663-character lecture on production one time
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,time
+          from urllib.request import Request,urlopen
+          text=('The garden has flowers and sunshine. '*530+' Machine learning models can suffer from overfitting.').strip()
+          assert len(text)==19663,len(text)
+          req=Request('https://unilex-samar.onrender.com/extract',
+                      data=json.dumps({'text':text}).encode(),
+                      headers={'Content-Type':'application/json'},method='POST')
+          start=time.monotonic()
+          with urlopen(req,timeout=180) as res:
+              body=json.load(res)
+              names=[x['term'] for x in body['terms_found']]
+              elapsed=time.monotonic()-start
+              print('LONG LIVE',res.status,'chars',len(text),'time_sec',round(elapsed,2),'terms',names[:15],flush=True)
+              assert res.status==200 and body['text_length']==len(text)
+              assert {'Machine Learning','Overfitting'}<=set(names),names
+          print('LONG PRODUCTION EXTRACTION PASSED',flush=True)
+          PY
