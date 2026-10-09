@@ -1,0 +1,89 @@
+name: UniLex lecture extraction validation
+
+on:
+  push:
+    branches: [verify/term-extraction-20261009]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  local-extraction:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install NLP dependencies
+        run: |
+          python -m pip install --disable-pip-version-check pandas==2.2.3 numpy==1.26.4 scikit-learn==1.6.1 nltk==3.9.1 spacy==3.8.7
+          python -m spacy download en_core_web_sm
+      - name: Test the 3067-term dictionary and lecture extraction boundaries
+        shell: bash
+        run: |
+          python - <<'PY'
+          import sys
+          sys.path.insert(0,'backend')
+          from data_loader import load_dataset
+          from term_extraction import TermExtractor
+          df=load_dataset()
+          ext=TermExtractor(df)
+          def terms(text):
+              return [df.iloc[x['index']]['term'] for x in ext.extract(text)]
+          def expect(name, text, contains=(), excludes=(), empty=False):
+              hits=terms(text)
+              print('CASE',name,'length',len(text),'found',hits[:16],'count',len(hits),flush=True)
+              assert all(k in hits for k in contains),(name,'missing',contains,hits)
+              assert all(k not in hits for k in excludes),(name,'unexpected',excludes,hits)
+              if empty: assert hits==[],(name,hits)
+          expect('blank','',empty=True)
+          expect('whitespace','   ',empty=True)
+          expect('ordinary_non_technical','I bought bread and milk.',empty=True)
+          expect('ambiguous_queue','I waited in a queue for coffee.',empty=True)
+          expect('ambiguous_model_window','The model walked beside the window.',empty=True)
+          expect('punctuation_boundary','machine. learning',excludes=['Machine Learning'])
+          expect('short_concepts','Machine learning models can suffer from overfitting.',contains=['Machine Learning','Overfitting'])
+          expect('singular_plural','Neural networks improve recognition.',contains=['Neural Network'])
+          expect('acronym_alias','We study NLP and natural language processing.',contains=['Natural Language Processing (NLP)'])
+          expect('hyphenated_phrase','Machine-learning models can overfit.',contains=['Machine Learning'])
+          boundary='garden '*127+'machine learning '+'garden '*130+'overfitting'
+          expect('chunk_boundary_128',boundary,contains=['Machine Learning','Overfitting'])
+          repeat=('The garden has flowers and sunshine. '*530)
+          long=(repeat+' Machine learning models can suffer from overfitting.').strip()
+          assert 15000<=len(long)<=20000,(len(long),'outside request limit')
+          expect('long_lecture',long,contains=['Machine Learning','Overfitting'])
+          print('LOCAL EXTRACTION PASS 12 CASES',flush=True)
+          PY
+  live-extraction:
+    needs: [local-extraction]
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Live Render API extraction stress and correctness
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from urllib.request import Request,urlopen
+          BASE='https://unilex-samar.onrender.com'
+          def post(text):
+              req=Request(BASE+'/extract',data=json.dumps({'text':text}).encode(),headers={'Content-Type':'application/json'},method='POST')
+              with urlopen(req,timeout=125) as response:
+                  body=json.load(response)
+                  return response.status,[x['term'] for x in body['terms_found']],body['text_length']
+          for name,text,expected in [
+              ('short','Machine learning models can suffer from overfitting.',{'Machine Learning','Overfitting'}),
+              ('no-match','I bought bread and milk.',set()),
+              ('empty','',set()),
+              ('plural','Neural networks improve recognition.',{'Neural Network'})
+          ]:
+              code,names,length=post(text)
+              print('LIVE',name,code,names[:12],len(text),flush=True)
+              assert code==200 and length==len(text),(name,code,length)
+              if expected:
+                  assert expected<=set(names),(name,expected,names)
+              else:
+                  assert names==[],(name,names)
+          print('LIVE EXTRACTION PASS 4 CASES',flush=True)
+          PY
