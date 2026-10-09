@@ -146,3 +146,47 @@ jobs:
           assert any(x in names for x in ["Overfitting","Overfitting In Ai.","Overfitting In Machine Learning","Canary Insertion"])
           print("PATCHED TF-IDF REGRESSION PASSED",flush=True)
           PY
+
+  semantic-diagnostics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install CPU inference dependencies
+        run: |
+          python -m pip install --disable-pip-version-check 'torch==2.5.1' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --disable-pip-version-check pandas==2.2.3 scikit-learn==1.6.1 numpy==1.26.4 nltk==3.9.1 sentence-transformers==3.4.1 transformers==4.48.3
+      - name: Inspect real SBERT scores and reranker decisions without altering production
+        shell: bash
+        run: |
+          python - <<'PY'
+          import sys
+          sys.path.insert(0,'backend')
+          import numpy as np
+          from sklearn.metrics.pairwise import cosine_similarity
+          from data_loader import load_dataset, build_search_text
+          from search_semantic import SemanticSearch
+          df=load_dataset()
+          texts=[build_search_text(row) for _,row in df.iterrows()]
+          model=SemanticSearch(df,texts,cache_dir='backend')
+          cases=[
+            'How do I determine whether a review is positive or negative?',
+            'I need to predict a house price rather than a category.',
+            'What pizza should I order tonight?',
+            'why does lamya call herself a queen?',
+            'Why does my model perform well on training data but poorly on unseen data?',
+          ]
+          for q in cases:
+              if model.model is None:
+                  from sentence_transformers import SentenceTransformer
+                  model.model=SentenceTransformer('all-MiniLM-L6-v2',device='cpu',local_files_only=True)
+              scores=cosine_similarity(model.model.encode([q],convert_to_numpy=True), model.embeddings).flatten()
+              top=sorted(range(len(scores)),key=lambda i:-float(scores[i]))[:12]
+              target=[i for i,t in enumerate(df['term']) if t in ('Regression','Linear Regression','Sentiment Analysis')]
+              print('START',q,'MAX',round(float(np.max(scores)),4),'SUPPORTED',
+                    [(df.iloc[i]['term'],round(float(scores[i]),3)) for i in model._supported_candidates(q,scores)[:7]], flush=True)
+              print('SBERT_TOP',[(df.iloc[i]['term'],round(float(scores[i]),4)) for i in top],flush=True)
+              print('TARGET_SCORES',[(df.iloc[i]['term'],round(float(scores[i]),4)) for i in target],flush=True)
+              result=model.search(q)
+              print('CURRENT_RETURN',q,[(df.iloc[i['index']]['term'],round(i['score'],3)) for i in result],flush=True)
+          PY
