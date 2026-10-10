@@ -5,7 +5,7 @@ Definitions are ranked before explanations to identify the requested concept.
 Returned scores remain SBERT cosine similarities, not reranker probabilities.
 """
 
-from collections import Counter
+from collections import Counter, OrderedDict
 import ctypes
 import gc
 import hashlib
@@ -38,6 +38,9 @@ class SemanticSearch:
             raise ValueError("Dataset and search texts must have the same length.")
         self.df = df
         self._lock = threading.Lock()
+        # Keep a small cache of fully verified responses for repeated searches.
+        # The cache holds lightweight result indices/scores, not model objects.
+        self._result_cache = OrderedDict()
         self._terms = [
             " ".join(str(term).casefold().split())
             for term in df["term"].fillna("")
@@ -216,6 +219,11 @@ class SemanticSearch:
         # The lock also prevents concurrent requests from retaining both
         # models while another request is switching the active model.
         with self._lock:
+            cache_key = (query.casefold(), top_k)
+            cached = self._result_cache.get(cache_key)
+            if cached is not None:
+                self._result_cache.move_to_end(cache_key)
+                return [hit.copy() for hit in cached]
             if self.model is None:
                 self.model = SentenceTransformer(
                     MODEL_NAME, device="cpu", local_files_only=True
@@ -329,7 +337,11 @@ class SemanticSearch:
                 finally:
                     del reranker
                     self._release_memory()
-            return [
+            result = [
                 {"index": int(i), "score": float(scores[i])}
                 for i in accepted[:top_k]
             ]
+            self._result_cache[cache_key] = tuple(hit.copy() for hit in result)
+            if len(self._result_cache) > 64:
+                self._result_cache.popitem(last=False)
+            return result
