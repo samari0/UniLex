@@ -15,7 +15,9 @@ jobs:
           python -m pip install --disable-pip-version-check torch==2.5.1 --index-url https://download.pytorch.org/whl/cpu
           python -m pip install --disable-pip-version-check pandas==2.2.3 numpy==1.26.4 scikit-learn==1.6.1 nltk==3.9.1 sentence-transformers==3.4.1 transformers==4.48.3
       - name: Get exact production semantic implementation for baseline comparison
-        run: git show d450d674d8f906185481fc5657560d40684b557c:backend/search_semantic.py > /tmp/unilex_search_semantic_baseline.py
+        run: |
+          git fetch --no-tags --depth=1 origin d450d674d8f906185481fc5657560d40684b557c
+          git show FETCH_HEAD:backend/search_semantic.py > /tmp/unilex_search_semantic_baseline.py
       - name: Check for syntax errors in changed semantic code
         run: python -m py_compile backend/search_semantic.py
       - name: Benchmark both versions with same dictionary and 25 real cases
