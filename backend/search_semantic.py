@@ -259,7 +259,7 @@ class SemanticSearch:
                 candidates = sorted(
                     (i for i in finite if scores[i] >= 0.30),
                     key=lambda i: (-float(scores[i]), i),
-                )[:64]
+                )[:128]
                 self.model = None
                 self._release_memory()
                 reranker = self._load_reranker()
