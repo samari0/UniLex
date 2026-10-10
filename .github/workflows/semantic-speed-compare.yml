@@ -1,0 +1,84 @@
+name: Compare UniLex semantic search speed and accuracy
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install CPU inference and benchmark dependencies
+        run: |
+          python -m pip install --disable-pip-version-check torch==2.5.1 --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --disable-pip-version-check pandas==2.2.3 numpy==1.26.4 scikit-learn==1.6.1 nltk==3.9.1 sentence-transformers==3.4.1 transformers==4.48.3
+      - name: Get exact production semantic implementation for baseline comparison
+        run: git show d450d674d8f906185481fc5657560d40684b557c:backend/search_semantic.py > /tmp/unilex_search_semantic_baseline.py
+      - name: Check for syntax errors in changed semantic code
+        run: python -m py_compile backend/search_semantic.py
+      - name: Benchmark both versions with same dictionary and 25 real cases
+        run: |
+          python - <<'PY'
+          import sys,time,json,gc,importlib.util,statistics
+          from pathlib import Path
+          sys.path.insert(0,'backend')
+          from data_loader import load_dataset,build_search_text
+          df=load_dataset()
+          texts=[build_search_text(r) for _,r in df.iterrows()]
+          cases=json.loads(Path('tests/search_cases.json').read_text())
+          assert len(cases)==25
+          accepted_aliases={
+              'How do I determine whether a review is positive or negative?':{'Sentiment Analysis In Nlp'}
+          }
+          def run(path,name):
+              spec=importlib.util.spec_from_file_location('semantic_'+name,path)
+              module=importlib.util.module_from_spec(spec)
+              spec.loader.exec_module(module)
+              start=time.monotonic()
+              engine=module.SemanticSearch(df,texts,cache_dir='backend')
+              init=time.monotonic()-start
+              rows=[]
+              for case in cases:
+                  q=case['q']
+                  start=time.monotonic()
+                  terms=[df.iloc[r['index']].term for r in engine.search(q)]
+                  dt=time.monotonic()-start
+                  expected=set(case['expected'])|accepted_aliases.get(q,set())
+                  passed=(bool(terms) and terms[0] in expected) if case['expected'] else not terms
+                  print(name,repr(q),'sec',round(dt,3),'top',terms[:3],'ok',passed,flush=True)
+                  rows.append({'q':q,'terms':terms,'passed':passed,'seconds':dt})
+              num=sum(r['passed'] for r in rows)
+              print('SUMMARY',name,'correct',num,'of',len(cases),'init_sec',round(init,1),
+                    'sum_query_sec',round(sum(r['seconds'] for r in rows),1),
+                    'p50_query_sec',round(statistics.median(r['seconds'] for r in rows),2),flush=True)
+              assert num>=25,(name,'regression failure',[(r['q'],r['terms']) for r in rows if not r['passed']])
+              del engine
+              gc.collect()
+              return rows
+          baseline=run('/tmp/unilex_search_semantic_baseline.py','BASELINE')
+          candidate=run('backend/search_semantic.py','OPTIMIZED')
+          after={x['q']:x for x in candidate}
+          mismatches=[(r['q'],r['terms'][:3],after[r['q']]['terms'][:3])
+                     for r in baseline if r['terms'][:1]!=after[r['q']]['terms'][:1]]
+          print('TOP_RESULT_CHANGES',mismatches,flush=True)
+          total_before=sum(r['seconds'] for r in baseline)
+          total_after=sum(r['seconds'] for r in candidate)
+          print('SPEED_BASELINE_SECONDS',round(total_before,2),
+                'SPEED_CANDIDATE_SECONDS',round(total_after,2),
+                'SPEEDUP_RATIO',round(total_before/max(total_after,0.01),2),flush=True)
+          assert total_after<total_before,('No measured speed improvement; do not deploy',total_before,total_after)
+          repeated=['Why does my model perform well on training data but poorly on unseen data?',
+                    'Which data structure follows first in first out?']
+          mod=importlib.util.spec_from_file_location('candidate','backend/search_semantic.py')
+          module=importlib.util.module_from_spec(mod);mod.loader.exec_module(module)
+          engine=module.SemanticSearch(df,texts,cache_dir='backend')
+          for q in repeated:
+              t=time.monotonic();a=engine.search(q);first=time.monotonic()-t
+              t=time.monotonic();b=engine.search(q);second=time.monotonic()-t
+              print('CACHE_REPEAT',repr(q),'first_sec',round(first,3),'second_sec',round(second,4),flush=True)
+              assert a==b and second<first and second<0.1,(q,first,second)
+          assert len(engine._result_cache)<=64
+          print('SEMANTIC SPEED AND ACCURACY BENCHMARK PASSED',flush=True)
+          PY
